@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Bell, MapPin, Shield, Info, CircleHelp as HelpCircle, Star, ChevronRight, Volume2, Vibrate, Moon, Smartphone } from 'lucide-react-native';
+import { useNotifications } from '@/src/contexts/NotificationContext';
 
 interface SettingSection {
   title: string;
@@ -27,11 +28,11 @@ interface SettingItem {
 }
 
 export default function SettingsScreen() {
-  const [pushNotifications, setPushNotifications] = useState(true);
   const [soundAlerts, setSoundAlerts] = useState(true);
   const [vibrationAlerts, setVibrationAlerts] = useState(true);
-  const [highRiskOnly, setHighRiskOnly] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const { notificationsEnabled, setNotificationsEnabled, highRiskOnly, setHighRiskOnly } = useNotifications(); 
+
 
   const settingSections: SettingSection[] = [
     {
@@ -43,8 +44,8 @@ export default function SettingsScreen() {
           subtitle: 'Receba alertas em tempo real',
           icon: Bell,
           type: 'toggle',
-          value: pushNotifications,
-          onToggle: setPushNotifications,
+          value: notificationsEnabled,
+          onToggle: setNotificationsEnabled,
         },
         {
           id: 'sound',

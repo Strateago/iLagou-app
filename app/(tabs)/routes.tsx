@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { useFocusEffect, useRoute, useNavigation} from '@react-navigation/native';
+import { useFocusEffect, useRoute, useNavigation } from '@react-navigation/native';
 import { 
   View, 
   Text, 
@@ -12,14 +12,14 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MapPin, Plus, Search, TriangleAlert as AlertTriangle, CircleCheck as CheckCircle, Clock, Trash2, CreditCard as Edit3, Navigation } from 'lucide-react-native';
-import {useRoutes} from '@/src/contexts/RouteContext';
+import { useRoutes } from '@/src/contexts/RouteContext';
 
 interface Route {
   id: number;
   name: string;
   startAddress: string;
   endAddress: string;
-  status: 'safe' | 'warning' | 'danger';
+  status: 'safe' | 'warning' | 'danger' | 'Obtendo risco' | 'Falha';
   lastUpdate: string;
   riskLevel: number;
 }
@@ -27,7 +27,7 @@ interface Route {
 export default function RoutesScreen() {
   const navigation = useNavigation();
   const route = useRoute();
-  const params:{bool?: boolean} = route.params || {};
+  const params: { bool?: boolean } = route.params || {};
   const [searchText, setSearchText] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [newRoute, setNewRoute] = useState({
@@ -37,8 +37,10 @@ export default function RoutesScreen() {
   });
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingRoute, setEditingRoute] = useState<Route | null>(null);
+  const [isAddingRoute, setIsAddingRoute] = useState(false);
   const { routes, addRoute, deleteRoute, updateRoute, MAX_ROUTES } = useRoutes();
   const isLimitReached = routes.length == MAX_ROUTES;
+  console.log(isLimitReached);
 
   useFocusEffect(
     useCallback(() => {
@@ -60,7 +62,7 @@ export default function RoutesScreen() {
     }
   };
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status: string): any => {
     switch (status) {
       case 'safe': return CheckCircle;
       case 'warning': return AlertTriangle;
@@ -78,6 +80,11 @@ export default function RoutesScreen() {
     }
   };
 
+  const getAtualizationText = (lastUpdate: string) => {
+    if (lastUpdate === 'waiting') return 'Aguardando...';
+    else{return `Atualizado em ${lastUpdate}`;}
+  };
+
   const getRiskLevelColor = (riskLevel: number) => {
     if (riskLevel < 30) return '#10B981';
     if (riskLevel < 70) return '#FF6B35';
@@ -90,16 +97,24 @@ export default function RoutesScreen() {
     route.endAddress.toLowerCase().includes(searchText.toLowerCase())
   );
 
-  const handleAddRoute = () => {
+  const handleAddRoute = async () => {
     if (newRoute.name && newRoute.startAddress && newRoute.endAddress) {
-      addRoute(newRoute); // Chama a função do contexto
-      setNewRoute({ name: '', startAddress: '', endAddress: '' });
-      setShowAddModal(false);
+      setIsAddingRoute(true);
+      try {
+        await addRoute(newRoute);
+        setNewRoute({ name: '', startAddress: '', endAddress: '' });
+        setShowAddModal(false);
+        Alert.alert('Sucesso!', 'A nova rota foi adicionada com sucesso.');
+      } catch (error) {
+        Alert.alert('Erro ao Adicionar Rota', 'Não foi possível obter os dados de risco para a rota.');
+      }
+    } else {
+      Alert.alert('Campos Faltando', 'Por favor, preencha todos os campos.');
     }
   };
 
   const handleDeleteRoute = (id: number) => {
-    deleteRoute(id); // Chama a função do contexto
+    deleteRoute(id);
   };
   
   const handleOpenEditModal = (routeToEdit: Route) => {
@@ -140,8 +155,11 @@ export default function RoutesScreen() {
         <TouchableOpacity 
           style={[styles.addRouteButton, isLimitReached && { backgroundColor: '#D1D5DB', opacity: 0.5 }]}
           onPress={() => {
-            if (!isLimitReached) {setShowAddModal(true)}
-            else{Alert.alert("Limite de Rotas Atingido", `Você já atingiu o limite de ${MAX_ROUTES} rotas.`)}
+            if (!isLimitReached) {
+              setShowAddModal(true);
+            } else {
+              Alert.alert("Limite de Rotas Atingido", `Você já atingiu o limite de ${MAX_ROUTES} rotas.`);
+            }
           }}
         >
           <Plus color="#fff" size={20} />
@@ -208,7 +226,7 @@ export default function RoutesScreen() {
                     </Text>
                   </View>
                 </View>
-                <Text style={styles.lastUpdate}>Atualizado {route.lastUpdate}</Text>
+                <Text style={styles.lastUpdate}>{getAtualizationText(route.lastUpdate)}</Text>
               </View>
             </View>
           );
@@ -226,7 +244,7 @@ export default function RoutesScreen() {
               <Text style={styles.cancelButton}>Cancelar</Text>
             </TouchableOpacity>
             <Text style={styles.modalTitle}>Nova Rota</Text>
-            <TouchableOpacity onPress={handleAddRoute}>
+            <TouchableOpacity onPress={ () => {setShowAddModal(false), handleAddRoute()}}>
               <Text style={styles.saveButton}>Salvar</Text>
             </TouchableOpacity>
           </View>
@@ -238,7 +256,7 @@ export default function RoutesScreen() {
                 style={styles.input}
                 placeholder="Ex: Casa - Trabalho"
                 value={newRoute.name}
-                onChangeText={(text) => setNewRoute({...newRoute, name: text})}
+                onChangeText={(text) => setNewRoute({ ...newRoute, name: text })}
                 placeholderTextColor="#6B7280"
               />
             </View>
@@ -249,7 +267,7 @@ export default function RoutesScreen() {
                 style={styles.input}
                 placeholder="Digite o endereço de partida"
                 value={newRoute.startAddress}
-                onChangeText={(text) => setNewRoute({...newRoute, startAddress: text})}
+                onChangeText={(text) => setNewRoute({ ...newRoute, startAddress: text })}
                 placeholderTextColor="#6B7280"
               />
             </View>
@@ -260,7 +278,7 @@ export default function RoutesScreen() {
                 style={styles.input}
                 placeholder="Digite o endereço de chegada"
                 value={newRoute.endAddress}
-                onChangeText={(text) => setNewRoute({...newRoute, endAddress: text})}
+                onChangeText={(text) => setNewRoute({ ...newRoute, endAddress: text })}
                 placeholderTextColor="#6B7280"
               />
             </View>

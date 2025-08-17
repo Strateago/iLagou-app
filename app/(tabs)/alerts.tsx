@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TriangleAlert as AlertTriangle, CircleCheck as CheckCircle, Clock, Bell, BellOff, MapPin, Calendar, Volume2 } from 'lucide-react-native';
+import { useNotifications } from '@/src/contexts/NotificationContext';
 
 interface Alert {
   id: number;
@@ -20,49 +21,8 @@ interface Alert {
   isRead: boolean;
 }
 
-const mockAlerts: Alert[] = [
-  {
-    id: 1,
-    routeName: 'Escola - Ana Clara',
-    type: 'flood_warning',
-    message: 'Possibilidade de alagamento na Av. das Nações devido à chuva intensa.',
-    timestamp: '2 min atrás',
-    severity: 'high',
-    isRead: false,
-  },
-  {
-    id: 2,
-    routeName: 'Shopping Eldorado',
-    type: 'heavy_rain',
-    message: 'Chuva forte prevista para os próximos 30 minutos na região.',
-    timestamp: '15 min atrás',
-    severity: 'medium',
-    isRead: false,
-  },
-  {
-    id: 3,
-    routeName: 'Casa - Trabalho',
-    type: 'all_clear',
-    message: 'Condições normais. Nenhum risco de alagamento detectado.',
-    timestamp: '1 hora atrás',
-    severity: 'low',
-    isRead: true,
-  },
-  {
-    id: 4,
-    routeName: 'Shopping Eldorado',
-    type: 'road_closed',
-    message: 'Via temporariamente interditada devido ao acúmulo de água.',
-    timestamp: '2 horas atrás',
-    severity: 'high',
-    isRead: true,
-  },
-];
-
 export default function AlertsScreen() {
-  const [alerts, setAlerts] = useState<Alert[]>(mockAlerts);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [soundEnabled, setSoundEnabled] = useState(true);
+  const { alerts, markAlertAsRead } = useNotifications();
 
   const getAlertIcon = (type: string) => {
     switch (type) {
@@ -92,12 +52,6 @@ export default function AlertsScreen() {
     }
   };
 
-  const markAsRead = (id: number) => {
-    setAlerts(alerts.map(alert => 
-      alert.id === id ? { ...alert, isRead: true } : alert
-    ));
-  };
-
   const unreadCount = alerts.filter(alert => !alert.isRead).length;
 
   return (
@@ -114,34 +68,6 @@ export default function AlertsScreen() {
         <Text style={styles.subtitle}>Notificações sobre suas rotas</Text>
       </View>
 
-      <View style={styles.settingsContainer}>
-        <View style={styles.settingRow}>
-          <View style={styles.settingInfo}>
-            <Bell color="#0066CC" size={20} />
-            <Text style={styles.settingLabel}>Notificações Push</Text>
-          </View>
-          <Switch
-            value={notificationsEnabled}
-            onValueChange={setNotificationsEnabled}
-            trackColor={{ false: '#E5E7EB', true: '#0066CC' }}
-            thumbColor="#fff"
-          />
-        </View>
-
-        <View style={styles.settingRow}>
-          <View style={styles.settingInfo}>
-            <Volume2 color="#0066CC" size={20} />
-            <Text style={styles.settingLabel}>Som dos Alertas</Text>
-          </View>
-          <Switch
-            value={soundEnabled}
-            onValueChange={setSoundEnabled}
-            trackColor={{ false: '#E5E7EB', true: '#0066CC' }}
-            thumbColor="#fff"
-          />
-        </View>
-      </View>
-
       <ScrollView style={styles.alertsList} showsVerticalScrollIndicator={false}>
         {alerts.map((alert) => {
           const AlertIcon = getAlertIcon(alert.type);
@@ -152,7 +78,7 @@ export default function AlertsScreen() {
                 styles.alertCard,
                 !alert.isRead && styles.unreadAlert
               ]}
-              onPress={() => markAsRead(alert.id)}
+              onPress={() => markAlertAsRead(alert.id)}
             >
               <View style={styles.alertHeader}>
                 <View style={styles.alertIconContainer}>

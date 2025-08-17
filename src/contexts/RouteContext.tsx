@@ -1,18 +1,53 @@
 // src/contexts/RouteContext.tsx
 import React, { createContext, useState, useContext, ReactNode } from 'react';
+import { getRiskForRoute, ApiResponse } from '@/src/services/api';
+import { useNotifications, Alert } from './NotificationContext'; 
 
-// 1. Defina a interface para os dados
 export interface Route {
   id: number;
   name: string;
   startAddress: string;
   endAddress: string;
-  status: 'safe' | 'warning' | 'danger';
+  status: 'safe' | 'warning' | 'danger' | 'Obtendo risco' | 'Falha';
   lastUpdate: string;
   riskLevel: number;
 }
 
-// Mock inicial, que será o único local de dados
+interface RouteContextType {
+  routes: Route[];
+  addRoute: (newRouteData: Omit<Route, 'id' | 'status' | 'lastUpdate' | 'riskLevel'>) => Promise<void>;
+  deleteRoute: (id: number) => void;
+  updateRoute: (id: number, updatedData: Partial<Omit<Route, 'id'>>) => Promise<void>;
+  MAX_ROUTES: number;
+}
+
+const getStatusFromRiskLevel = (riskLevel: number): 'safe' | 'warning' | 'danger' => {
+  if (riskLevel < 30) return 'safe';
+  if (riskLevel < 70) return 'warning';
+  return 'danger';
+};
+
+const getSeverityFromRiskLevel = (riskLevel: number): 'low' | 'medium' | 'high' => {
+  if (riskLevel < 30) return 'low';
+  if (riskLevel < 70) return 'medium';
+  return 'high';
+};
+
+const getAlertMessageFromRisk = (riskLevel: number): string => {
+  if (riskLevel < 30) return 'Condições normais. Nenhum risco de alagamento detectado.';
+  if (riskLevel < 70) return 'Risco moderado de alagamento. Fique atento às atualizações.';
+  return 'Alto risco de alagamento. Considere uma rota alternativa!';
+};
+
+const formatDate = (date: Date): string => {
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${day}/${month}/${year} às ${hours}:${minutes}`;
+};
+
 const initialRoutes: Route[] = [
   {
     id: 1,
@@ -20,93 +55,149 @@ const initialRoutes: Route[] = [
     startAddress: 'Rua das Flores, 123',
     endAddress: 'Av. Paulista, 1000',
     status: 'safe',
-    lastUpdate: '10 min atrás',
+    lastUpdate: formatDate(new Date()),
     riskLevel: 15,
   },
-  {
-    id: 2,
-    name: 'Shopping Eldorado',
-    startAddress: 'Casa',
-    endAddress: 'Shopping Eldorado',
-    status: 'warning',
-    lastUpdate: '5 min atrás',
-    riskLevel: 65,
-  },
-  // {
-  //   id: 3,
-  //   name: 'Shopping Eldorado',
-  //   startAddress: 'Casa',
-  //   endAddress: 'Shopping Eldorado',
-  //   status: 'warning',
-  //   lastUpdate: '5 min atrás',
-  //   riskLevel: 65,
-  // },
-  // {
-  //   id: 4,
-  //   name: 'Shopping Eldorado',
-  //   startAddress: 'Casa',
-  //   endAddress: 'Shopping Eldorado',
-  //   status: 'warning',
-  //   lastUpdate: '5 min atrás',
-  //   riskLevel: 65,
-  // },
-  // {
-  //   id: 5,
-  //   name: 'Shopping Eldorado',
-  //   startAddress: 'Casa',
-  //   endAddress: 'Shopping Eldorado',
-  //   status: 'warning',
-  //   lastUpdate: '5 min atrás',
-  //   riskLevel: 65,
-  // },
 ];
 
-// 2. Crie a interface para o valor do contexto
-interface RouteContextType {
-  routes: Route[];
-  addRoute: (route: Omit<Route, 'id' | 'status' | 'lastUpdate' | 'riskLevel'>) => void;
-  deleteRoute: (id: number) => void;
-  updateRoute: (id: number, updatedData: Partial<Omit<Route, 'id'>>) => void;
-  MAX_ROUTES: number;
-  // Aqui você pode adicionar outras funções como 'updateRoute'
-}
-
-// 3. Crie o contexto
 const RouteContext = createContext<RouteContextType | undefined>(undefined);
 
-// 4. Crie o provedor do contexto
 export const RouteProvider = ({ children }: { children: ReactNode }) => {
   const [routes, setRoutes] = useState<Route[]>(initialRoutes);
   const MAX_ROUTES = 2;
 
-  const addRoute = (newRouteData: Omit<Route, 'id' | 'status' | 'lastUpdate' | 'riskLevel'>) => {
+  const { addAlert } = useNotifications();
+
+  const addRoute = async (newRouteData: Omit<Route, 'id' | 'status' | 'lastUpdate' | 'riskLevel'>) => {
     if (routes.length >= MAX_ROUTES) {
       alert(`Limite de ${MAX_ROUTES} rotas atingido. Exclua uma rota antes de adicionar outra.`);
       return;
     }
-    const newRoute: Route = {
-      id: Date.now(),
+
+    const tempId = Date.now();
+    const tempRoute: Route = {
+      id: tempId,
       ...newRouteData,
-      status: 'safe', // Padrão
-      lastUpdate: 'Agora', // Padrão
-      riskLevel: 20, // Padrão
+      status: 'Obtendo risco',
+      riskLevel: 0,
+      lastUpdate: 'waiting',
     };
-    setRoutes((currentRoutes) => [...currentRoutes, newRoute]);
+    setRoutes(currentRoutes => [...currentRoutes, tempRoute]);
+
+    try {
+      const apiData: ApiResponse = await getRiskForRoute(
+        newRouteData.startAddress,
+        newRouteData.endAddress
+      );
+
+      const updatedRoute: Route = {
+        id: tempId,
+        ...newRouteData,
+        status: getStatusFromRiskLevel(apiData.probabilidade),
+        riskLevel: Math.round(apiData.probabilidade),
+        lastUpdate: formatDate(new Date()),
+      };
+      setRoutes(currentRoutes => currentRoutes.map(r => r.id === tempId ? updatedRoute : r));
+
+      // 💡 Lógica para gerar alerta SOMENTE quando o risco não for baixo
+      if (updatedRoute.status !== 'safe') {
+        addAlert({
+          routeName: newRouteData.name,
+          type: 'flood_warning',
+          message: getAlertMessageFromRisk(updatedRoute.riskLevel),
+          severity: getSeverityFromRiskLevel(updatedRoute.riskLevel),
+        });
+      }
+
+    } catch (error) {
+      console.error('Falha ao obter dados da API:', error);
+      setRoutes(currentRoutes => currentRoutes.map(r => r.id === tempId ? { ...r, status: 'Falha', lastUpdate: 'Falha na atualização' } : r));
+
+      addAlert({
+        routeName: newRouteData.name,
+        type: 'unknown',
+        message: 'Falha ao verificar o risco da rota. Tente novamente.',
+        severity: 'high',
+      });
+      throw error;
+    }
   };
 
   const deleteRoute = (id: number) => {
     setRoutes((currentRoutes) => currentRoutes.filter(route => route.id !== id));
   };
 
-  const updateRoute = (id: number, updatedData: Partial<Omit<Route, 'id'>>) => {
-    setRoutes(currentRoutes =>
-      currentRoutes.map(route =>
-        route.id === id ? { ...route, ...updatedData } : route
-      )
-    );
+  const updateRoute = async (id: number, updatedData: Partial<Omit<Route, 'id'>>) => {
+    const existingRoute = routes.find(r => r.id === id);
+    if (!existingRoute) return;
+
+    const addressesChanged = updatedData.startAddress !== existingRoute.startAddress ||
+                             updatedData.endAddress !== existingRoute.endAddress;
+
+    if (addressesChanged) {
+      const tempUpdatedRoute = {
+        ...existingRoute,
+        ...updatedData,
+        status: 'Obtendo risco' as const,
+        lastUpdate: 'Aguardando...',
+      };
+      setRoutes(currentRoutes => currentRoutes.map(r => r.id === id ? tempUpdatedRoute : r));
+      
+      try {
+        const apiData: ApiResponse = await getRiskForRoute(
+          updatedData.startAddress || existingRoute.startAddress,
+          updatedData.endAddress || existingRoute.endAddress
+        );
+
+        const updatedRoute: Route = {
+          ...tempUpdatedRoute,
+          status: getStatusFromRiskLevel(apiData.probabilidade),
+          riskLevel: Math.round(apiData.probabilidade),
+          lastUpdate: formatDate(new Date()),
+        };
+        setRoutes(currentRoutes => currentRoutes.map(r => r.id === id ? updatedRoute : r));
+
+        // 💡 Lógica para gerar alerta SOMENTE quando o risco não for baixo
+        if (updatedRoute.status !== 'safe') {
+          addAlert({
+            routeName: updatedRoute.name,
+            type: 'flood_warning',
+            message: getAlertMessageFromRisk(updatedRoute.riskLevel),
+            severity: getSeverityFromRiskLevel(updatedRoute.riskLevel),
+          });
+        }
+      } catch (error) {
+        setRoutes(currentRoutes => currentRoutes.map(r => r.id === id ? { ...r, status: 'Falha', lastUpdate: `Falha em ${formatDate(new Date())}` } : r));
+        
+        addAlert({
+          routeName: existingRoute.name,
+          type: 'unknown',
+          message: 'Falha ao verificar o risco da rota. Tente novamente.',
+          severity: 'high',
+        });
+        throw error;
+      }
+    } else {
+      setRoutes(currentRoutes =>
+        currentRoutes.map(route =>
+          route.id === id
+            ? {
+                ...route,
+                ...updatedData,
+              }
+            : route
+        )
+      );
+    }
   };
 
-  const value = { routes, addRoute, deleteRoute, updateRoute, MAX_ROUTES };
+  const value = {
+    routes,
+    addRoute,
+    deleteRoute,
+    updateRoute,
+    MAX_ROUTES,
+  };
 
   return (
     <RouteContext.Provider value={value}>
@@ -115,7 +206,6 @@ export const RouteProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-// 5. Crie um hook customizado para facilitar o uso
 export const useRoutes = () => {
   const context = useContext(RouteContext);
   if (!context) {

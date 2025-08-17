@@ -81,7 +81,7 @@ export default function HomeScreen() {
           {routes.map((route) => {
             const StatusIcon = getStatusIcon(route.status);
             return (
-              <TouchableOpacity key={route.id} style={styles.routeCard} disabled={true}>
+              <TouchableOpacity key={route.id} style={styles.routeCard} onPress={() => navigation.navigate('routes')}>
                 <View style={styles.routeHeader}>
                   <View style={styles.routeInfo}>
                     <MapPin color="#666" size={20} />
