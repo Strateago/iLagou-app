@@ -10,19 +10,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TriangleAlert as AlertTriangle, CircleCheck as CheckCircle, Clock, Bell, BellOff, MapPin, Calendar, Volume2 } from 'lucide-react-native';
 import { useNotifications } from '@/src/contexts/NotificationContext';
-
-interface Alert {
-  id: number;
-  routeName: string;
-  type: 'flood_warning' | 'road_closed' | 'heavy_rain' | 'all_clear';
-  message: string;
-  timestamp: string;
-  severity: 'low' | 'medium' | 'high';
-  isRead: boolean;
-}
+import { Alert } from '@/src/contexts/NotificationContext';
 
 export default function AlertsScreen() {
-  const { alerts, markAlertAsRead } = useNotifications();
+  const { alerts, markAlertAsRead, addAlert } = useNotifications();
 
   const getAlertIcon = (type: string) => {
     switch (type) {
@@ -52,7 +43,27 @@ export default function AlertsScreen() {
     }
   };
 
-  const unreadCount = alerts.filter(alert => !alert.isRead).length;
+  // 💡 Nova função para gerar alerta de alta prioridade
+  const handleHighPriorityTest = () => {
+    addAlert({
+      routeName: 'Rota de Teste - Máximo',
+      type: 'flood_warning',
+      message: 'Este é um alerta de teste de ALTA prioridade. Risco máximo detectado.',
+      severity: 'high',
+    });
+  };
+    
+  // 💡 Nova função para gerar alerta de média prioridade
+  const handleMediumPriorityTest = () => {
+    addAlert({
+      routeName: 'Rota de Teste - Médio',
+      type: 'flood_warning',
+      message: 'Este é um alerta de teste de MÉDIA prioridade. Risco moderado detectado.',
+      severity: 'medium',
+    });
+  };
+
+  const unreadCount = alerts.length;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -66,6 +77,16 @@ export default function AlertsScreen() {
           )}
         </View>
         <Text style={styles.subtitle}>Notificações sobre suas rotas</Text>
+      </View>
+
+      {/* 💡 Botões separados para cada tipo de teste */}
+      <View style={styles.testButtonsContainer}>
+        <TouchableOpacity style={[styles.testButton, styles.highPriorityButton]} onPress={handleHighPriorityTest}>
+          <Text style={styles.testButtonText}>Alerta de Alto Risco</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.testButton, styles.mediumPriorityButton]} onPress={handleMediumPriorityTest}>
+          <Text style={styles.testButtonText}>Alerta de Médio Risco</Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.alertsList} showsVerticalScrollIndicator={false}>
@@ -203,7 +224,7 @@ const styles = StyleSheet.create({
   unreadAlert: {
     borderLeftWidth: 4,
     borderLeftColor: '#0066CC',
-  },
+   },
   alertHeader: {
     flexDirection: 'row',
   },
@@ -277,5 +298,17 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     textAlign: 'center',
     lineHeight: 20,
+  },
+  testButton: {
+    backgroundColor: '#E5E7EB',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 20,
+    alignSelf: 'center',
+  },
+  testButtonText: {
+    color: '#1F2937',
+    fontWeight: '600',
   },
 });

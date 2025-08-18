@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router';
-import { MapPin, Chrome as Home, Bell, Settings } from 'lucide-react-native';
+import { Image } from 'react-native';
+import { MapPin, Bell, Settings } from 'lucide-react-native';
 
 export default function TabLayout() {
   return (
@@ -26,8 +27,11 @@ export default function TabLayout() {
         options={{
           title: 'Início',
           tabBarIcon: ({ size, color }) => (
-            <Home size={size} color={color} />
-          ),
+            <Image
+              source={require('@/assets/images/logo.png')}
+              style={{ width: size, height: size, tintColor: color }}
+            />
+          )
         }}
       />
       <Tabs.Screen

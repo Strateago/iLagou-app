@@ -40,7 +40,6 @@ export default function RoutesScreen() {
   const [isAddingRoute, setIsAddingRoute] = useState(false);
   const { routes, addRoute, deleteRoute, updateRoute, MAX_ROUTES } = useRoutes();
   const isLimitReached = routes.length == MAX_ROUTES;
-  console.log(isLimitReached);
 
   useFocusEffect(
     useCallback(() => {
@@ -48,7 +47,7 @@ export default function RoutesScreen() {
       if (params.bool) {
         setShowAddModal(true);
         // Ao entrar na aba, limpa o parâmetro para não abrir de novo
-        navigation.setParams({ bool: false });
+        navigation.setParams({ bool: false } as any);
       }
     }, [route, params.bool])
   );

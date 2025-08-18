@@ -22,19 +22,19 @@ interface RouteContextType {
 }
 
 const getStatusFromRiskLevel = (riskLevel: number): 'safe' | 'warning' | 'danger' => {
-  if (riskLevel < 30) return 'safe';
+  if (riskLevel < 40) return 'safe';
   if (riskLevel < 70) return 'warning';
   return 'danger';
 };
 
 const getSeverityFromRiskLevel = (riskLevel: number): 'low' | 'medium' | 'high' => {
-  if (riskLevel < 30) return 'low';
+  if (riskLevel < 40) return 'low';
   if (riskLevel < 70) return 'medium';
   return 'high';
 };
 
 const getAlertMessageFromRisk = (riskLevel: number): string => {
-  if (riskLevel < 30) return 'Condições normais. Nenhum risco de alagamento detectado.';
+  if (riskLevel < 40) return 'Condições normais. Nenhum risco de alagamento detectado.';
   if (riskLevel < 70) return 'Risco moderado de alagamento. Fique atento às atualizações.';
   return 'Alto risco de alagamento. Considere uma rota alternativa!';
 };

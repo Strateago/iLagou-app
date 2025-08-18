@@ -28,10 +28,8 @@ interface SettingItem {
 }
 
 export default function SettingsScreen() {
-  const [soundAlerts, setSoundAlerts] = useState(true);
-  const [vibrationAlerts, setVibrationAlerts] = useState(true);
-  const [autoRefresh, setAutoRefresh] = useState(true);
-  const { notificationsEnabled, setNotificationsEnabled, highRiskOnly, setHighRiskOnly } = useNotifications(); 
+  const { notificationsEnabled, setNotificationsEnabled, highRiskOnly, setHighRiskOnly,
+          vibrationAlerts, setVibrationAlerts, } = useNotifications(); 
 
 
   const settingSections: SettingSection[] = [
@@ -40,21 +38,12 @@ export default function SettingsScreen() {
       items: [
         {
           id: 'push',
-          title: 'Notificações Push',
+          title: 'Notificações',
           subtitle: 'Receba alertas em tempo real',
           icon: Bell,
           type: 'toggle',
           value: notificationsEnabled,
           onToggle: setNotificationsEnabled,
-        },
-        {
-          id: 'sound',
-          title: 'Som dos Alertas',
-          subtitle: 'Alertas sonoros para emergências',
-          icon: Volume2,
-          type: 'toggle',
-          value: soundAlerts,
-          onToggle: setSoundAlerts,
         },
         {
           id: 'vibration',
@@ -76,20 +65,20 @@ export default function SettingsScreen() {
         },
       ],
     },
-    {
-      title: 'Aplicativo',
-      items: [
-        {
-          id: 'auto-refresh',
-          title: 'Atualização Automática',
-          subtitle: 'Verificar rotas a cada 5 minutos',
-          icon: Smartphone,
-          type: 'toggle',
-          value: autoRefresh,
-          onToggle: setAutoRefresh,
-        },
-      ],
-    },
+    // {
+    //   title: 'Aplicativo',
+    //   items: [
+    //     {
+    //       id: 'dark-mode',
+    //       title: 'Modo Escuro',
+    //       subtitle: 'Tema escuro para conforto visual',
+    //       icon: Moon,
+    //       type: 'toggle',
+    //       value: isDarkMode,
+    //       onToggle: tog,
+    //     },
+    //   ],
+    // },
   ];
 
   const renderSettingItem = (item: SettingItem) => {

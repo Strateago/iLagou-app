@@ -1,5 +1,5 @@
 import axios, { AxiosError } from 'axios';
-const API_BASE_URL = 'http://192.168.1.6:3000/api/v1';
+const API_BASE_URL = 'http://10.98.9.201:3000/api/v1';
 
 // 💡 Defina a interface para a resposta que você espera da sua API.
 export interface ApiResponse {
